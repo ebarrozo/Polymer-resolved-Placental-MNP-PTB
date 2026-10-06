@@ -119,8 +119,4 @@ Scripts write tables, figures, logs, and diagnostics under `outputs/`. This dire
 
 ## Citation
 
-Please cite the associated manuscript when using this code. Add the final journal citation and DOI here after publication.
-
-## License
-
-No software license is assigned in this bundle. Select a license consistent with institutional policy before making the repository public.
+Please cite the associated manuscript when using this code. 
