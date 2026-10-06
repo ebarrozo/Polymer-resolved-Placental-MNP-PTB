@@ -1,0 +1,26 @@
+# macOS / editor files
+.DS_Store
+__MACOSX/
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+~$*
+
+# Generated analysis outputs may contain specimen identifiers
+outputs/
+
+# Restricted/private study inputs
+data/restricted/*
+!data/restricted/.gitkeep
+
+# Local supplementary source workbook
+data/supplementary/*.xlsx
+
+# External downloaded datasets
+data/external/*.csv
+data/external/*.xlsx
+
+# Temporary exports
+*.tmp
+*.bak
