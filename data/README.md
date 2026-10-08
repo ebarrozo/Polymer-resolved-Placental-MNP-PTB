@@ -27,7 +27,7 @@ This file is not included publicly.
 
 ## Pathology data
 
-Script 09 uses a restricted pathology-score CSV configured by `MNP_PATHOLOGY_INPUT`, defaulting to:
+`scripts/internal/09_histopathology_fit_stage.R` uses a restricted pathology-score CSV configured by `MNP_PATHOLOGY_INPUT`, defaulting to:
 
 ```text
 data/restricted/pathology_scores.csv
@@ -35,7 +35,7 @@ data/restricted/pathology_scores.csv
 
 ## Spike-recovery validation
 
-Script 18 uses the paired fresh-placenta spike/unspike workbook and the validation-control workbook. Place them under:
+`scripts/internal/18_validation_fit_stage.R` uses the paired fresh-placenta spike/unspike workbook and the validation-control workbook. Place them under:
 
 ```text
 data/restricted/spike_validation/
@@ -51,13 +51,13 @@ These source workbooks are not included because they contain internal specimen-l
 
 ## Supplementary Table S1 source workbook
 
-Script 20 updates the manuscript Supplementary Table S1 workbook. The default expected source is:
+`scripts/20_rebuild_supplementary_table_S1_v8_IQR.R` rebuilds the revised analytical Supplementary Table S1. The expected source is the local v7 validation workbook:
 
 ```text
-data/supplementary/04-TableS1_v6.xlsx
+data/supplementary/04-TableS1_v7_spike_validation.xlsx
 ```
 
-Alternatively set `MNP_TABLE_S1_INPUT` to a local copy.
+Alternatively set `MNP_TABLE_S1_INPUT` to a local copy. The source workbook is not redistributed publicly.
 
 ## External deprivation-index files
 
