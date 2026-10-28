@@ -1,48 +1,104 @@
 #!/usr/bin/env Rscript
-# Canonical manuscript-analysis runner.
-# Run from repository root after restricted inputs are configured.
+# PTB publication-code dispatcher. Run from repository root.
+# Does not run any analysis without an explicit --run TARGET.
+# Restricted inputs and previously frozen outputs are NOT shipped in this repository.
 
-source("scripts/01_build_analysis_ready_inputs.R")
-
-# Manuscript cohort lock: 171 pregnancies = 85 term + 86 preterm.
-.lock_path <- file.path("outputs", "tables", "mnp_ptb_cohort__analysis_ready_model_table.csv")
-.lock <- readr::read_csv(.lock_path, show_col_types = FALSE)
-.lock <- .lock[as.character(.lock$Delivery_class) %in% c("Term", "Preterm"), , drop = FALSE]
-.lock_counts <- table(as.character(.lock$Delivery_class))
-if (nrow(.lock) != 171L || unname(.lock_counts["Term"]) != 85L || unname(.lock_counts["Preterm"]) != 86L) {
-  stop(
-    "Manuscript cohort lock failed. Expected 171 total = 85 term + 86 preterm; found ",
-    nrow(.lock), " total = ", unname(.lock_counts["Term"]), " term + ",
-    unname(.lock_counts["Preterm"]), " preterm.", call. = FALSE
-  )
+args <- commandArgs(trailingOnly = TRUE)
+help <- function() {
+  cat(paste(
+    'Usage:',
+    '  Rscript run_analysis.R --list',
+    '  Rscript run_analysis.R --check TARGET',
+    '  Rscript run_analysis.R --run TARGET',
+    '',
+    'Run from the repository root. --check checks known input paths,',
+    'not packages, cohort content, or every historical dependency.',
+    'No automatic --all mode: different scripts consume frozen upstream outputs.',
+    sep='\n'), '\n')
 }
-message("Cohort lock passed: 171 total; 85 term; 86 preterm.")
-rm(.lock, .lock_counts, .lock_path)
-source("scripts/03_qc_figures_abs_mass_polished.R")
-source("scripts/04_descriptive_and_univariate_polished.R")
-source("scripts/05_clustering_polished.R")
-
-# Internal coefficient-generating stages. Their historical fixed-log10(2)
-# effect columns are intermediate only and are never manuscript-facing.
-source("scripts/internal/06_ptb_fit_stage.R")
-source("scripts/06a_ptb_effect_scale_reference.R")
-source("scripts/06b_finalize_primary_ptb_IQR.R")
-source("scripts/06c_finalize_ptb_sensitivity_IQR.R")
-
-source("scripts/internal/07_ptb_robustness_fit_stage.R")
-source("scripts/07_finalize_ptb_robustness_IQR.R")
-
-source("scripts/internal/08_labor_fit_stage.R")
-source("scripts/internal/09_histopathology_fit_stage.R")
-source("scripts/10_delivery_status_descriptive_figs_polished.R")
-source("scripts/internal/11_ordinal_ga_fit_stage.R")
-source("scripts/12_clinical_outcome_correlations.R")
-source("scripts/internal/18_validation_fit_stage.R")
-
-# Final manuscript-facing effect scales and figures.
-source("scripts/08_finalize_secondary_IQR.R")
-source("scripts/08b_finalize_ordinal_labor_figures_IQR.R")
-source("scripts/09_finalize_histopathology_IQR.R")
-
-message("Canonical analysis complete. Final continuous-model effects are reported on IQR scales.")
-message("Run scripts/20_rebuild_supplementary_table_S1_v8_IQR.R separately if the local Table S1 source workbook is available.")
+if (identical(args, '--list')) args <- c('--list','all')
+if (length(args) != 2L || !args[1] %in% c('--list','--check','--run') ||
+    (args[1] == '--list' && args[2] != 'all')) {
+  help()
+  quit(status=if (length(args)==0L) 0L else 2L)
+}
+root <- normalizePath(getwd(), mustWork=TRUE)
+if (!file.exists(file.path(root,'00_config.R')) || !dir.exists(file.path(root,'scripts'))) {
+  stop('Run from the repository root (00_config.R and scripts/ must be present).')
+}
+# Only these named final outputs should be used in the manuscript. Other available
+# source scripts are retained for upstream derivation, not publication plotting.
+targets <- c(
+  'prepare'       = '01_build_analysis_ready_inputs.R',
+  'qc'            = '03_qc_figures_abs_mass_polished.R',
+  'descriptive'   = '04_descriptive_and_univariate_polished.R',
+  'clustering'    = '05_clustering_polished.R',
+  'delivery'      = '10_delivery_status_descriptive_figs_polished.R',
+  'primary-base'  = '06_primary_ptb_models.R',
+  'primary-scale' = '22_ptb_effect_scale_audit.R',
+  'primary-iqr'   = '23_finalize_primary_ptb_IQR.R',
+  'robust-scale'  = '24_rescale_ptb_sensitivity_IQR.R',
+  'robust-iqr'    = '27_finalize_suppfigure4_IQR.R',
+  'labor-base'    = '08_labor_outcome_supplement_polished.R',
+  'ordinal-base'  = '11_ordinal_ga_category_models.R',
+  'labor-scale'   = '26_secondary_models_IQR_audit.R',
+  'labor-iqr'     = '28_finalize_ordinal_labor_IQR_figures.R',
+  'path-base'     = '09_histopathology_models_polished.R',
+  'path-iqr'      = '29_finalize_histopathology_IQR.R',
+  'correlations'  = '12_clinical_outcome_correlations.R',
+  'heterogeneity' = '32_ptb_heterogeneity_sensitivity_LOCKED_PTB.R',
+  'spline'        = '37_four_polymer_nonlinearity_robustness.R',
+  'validation-base'= '18_placenta_spike_recovery_validation.R',
+  'validation-s6'= '39_merged_placenta_analytical_suppfigure.R'
+)
+notes <- c(
+  'prepare'='Restricted cleaned specimen/control input tables',
+  'primary-base'='Legacy intermediate model output; NOT final IQR figure',
+  'primary-scale'='Historical scale-audit intermediary (not final plot)',
+  'primary-iqr'='Requires completed Script 22 audit folder',
+  'robust-scale'='Requires Script 06 and Script 22 output folders',
+  'robust-iqr'='Requires Script 24 and frozen leave-one-out/robustness outputs',
+  'labor-scale'='Requires completed labor/ordinal model results',
+  'labor-iqr'='Requires Script 26 output folder',
+  'path-iqr'='Requires Script 09 pathology model outputs',
+  'spline'='Requires outputs/tables/mnp_ptb_cohort__analysis_ready_model_table.csv',
+  'validation-base'='Requires restricted paired tissue and control workbooks',
+  'validation-s6'='Requires seven frozen Script 18 CSVs (including restricted specimen audit) in outputs/tables/39_merged_analytical_inputs'
+)
+if (args[1] == '--list') {
+  for (nm in names(targets)) cat(sprintf('%-17s %s%s\n',nm,targets[[nm]],
+        if(nm %in% names(notes)) paste0('  [',notes[[nm]],']') else ''))
+  quit(status=0L)
+}
+target <- args[2]
+if (!target %in% names(targets)) {help();stop('Unknown target: ',target)}
+script <- file.path('scripts', targets[[target]])
+if (!file.exists(script)) stop('Missing expected file: ',script)
+# Only basic, deterministic checks, not a false claim of full dependency validation.
+known <- switch(target,
+  'prepare'=file.path('data','restricted','model_ready',c('placenta_model_ready_wide.csv','controls_blank_ready_wide.csv','controls_blank_ready_long.csv')),
+  'spline'=file.path('outputs','tables','mnp_ptb_cohort__analysis_ready_model_table.csv'),
+  'heterogeneity'=file.path('outputs','tables','mnp_ptb_cohort__analysis_ready_model_table.csv'),
+  'validation-s6'=file.path('outputs','tables','39_merged_analytical_inputs',c(
+    'spike_only_process_recovery.csv', 'placenta_paired_polymer_recovery.csv',
+    'pu_pet_qc_category_counts_by_delivery_class.csv',
+    'pu_pet_qc_binary_ptb_sensitivity_models.csv','pu_pet_qc_bias_reduced_models.csv',
+    'pu_pet_historical_maxblank_subtracted_continuous_models.csv',
+    'pu_pet_historical_maxblank_subtraction_specimen_audit.csv')),
+  character(0))
+if (identical(args[1],'--check')) {
+  cat('Target:',target,'\nScript:',script,'\n')
+  if(length(known)) {
+    missing <- known[!file.exists(known)]
+    if(length(missing)) {cat('Missing known prerequisites:\n',paste0('  ',missing,collapse='\n'),'\n',sep='');quit(status=1L)}
+    cat('Known paths present; OTHER dependencies may still be required.\n')
+  } else cat('Script found. Full input dependencies must be reviewed in script header.\n')
+  quit(status=0L)
+}
+if (length(known) && any(!file.exists(known))) {
+  stop('Missing known prerequisite(s) for ',target,':\n',paste(known[!file.exists(known)],collapse='\n'),
+       '\nUse --check and consult README.md. No analysis run.')
+}
+cat('Running target:',target,'\nScript:',script,'\n')
+source(script, local=.GlobalEnv, chdir=FALSE)
+cat('Completed target:',target,'\n')

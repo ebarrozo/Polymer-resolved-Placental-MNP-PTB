@@ -1,44 +1,82 @@
-# Polymer-resolved placental MNPs and preterm birth — submission code
+# Polymer-resolved placental micro- and nanoplastics and preterm birth
 
-This is the curated **publication-facing code package**, prepared from the supplied GitHub snapshot and subsequent author analysis scripts. **It is not an uploaded GitHub commit or a verified end-to-end re-execution.** The author confirmed that revised Script 39 generated the final three-panel analytical Supplementary Figure S6.
+**Publication-facing R analysis code** for the placental MNP–preterm birth study. The repository includes scripts supporting **all analyses reported in the main manuscript and supplement**. It excludes unreported hypothetical recovery-correction simulations and superseded exploratory analyses. The manuscript and final supplementary tables remain the authorities for the reported numerical results.
 
-## Final manuscript display order
+> **Data availability and reproducibility:** This is a **code-only repository**. Restricted clinical/specimen-level data, validation-control workbooks, and some frozen intermediate analysis outputs are not distributed. The complete pipeline cannot be independently executed from this repository alone. This has not been validated by a fresh end-to-end run. See [data/README.md](data/README.md) and [REPRODUCIBILITY_NOTES.md](REPRODUCIBILITY_NOTES.md).
 
-| Location | Analysis | Authoritative script(s) |
+## Final figure and table crosswalk
+
+| Manuscript exhibit | Analysis | Main publication script(s) |
 |---|---|---|
-| Table 1 | Clinical cohort | 01; final S1a/S1b |
-| Figure 1; Table 2 | Polymer burdens, composition, detection | 03, 04, 10 |
-| Figure 2 | Adjusted PTB forest, **IQR** | **23** (using upstream 06 and 22) |
-| Figure 3 | Microcalcification severity | **29** (upstream 09) |
-| Figure S1 | QC/detection | 03; validated controls 20 v2 |
-| Figure S2 | Univariate burden/gestational age | 04, 10 |
-| Figure S3 | CLR-PCA clustering | 05 |
-| Figure S4 | PTB robustness | **24, 27** (upstream 06c, 07) |
-| Figure S5 | Four-polymer nonlinearity | **37** |
-| Figure S6 | Recovery and PU/PET analytical sensitivity | **39** (upstream 18) |
-| Figure S7 | Labor augmentation and ordinal GA | **28** (upstream 08, 11, 26) |
-| Figure S8 | PVF severity | **29** (upstream 09) |
-| Table S1a–S1i | Supplementary tables | final **S1 v11** workbook; scripts 12, 18, 20 v2, 31, 32, 37 and original compilers |
+| Table 1 | Cohort clinical characteristics | `01`; final Supplementary Table S1a–S1b |
+| Figure 1 and Table 2 | Polymer burden, composition, detection | `03`, `04`, `10` |
+| Figure 2 | Adjusted PTB association forest, transformed-IQR ORs | **`23`**, upstream `06`, `22` |
+| Figure 3 | Microcalcification severity | **`29`**, upstream `09` |
+| Supplementary Figure S1 | Analytical QC and detection | `03`, `20` |
+| Supplementary Figure S2 | Descriptive/univariate burden and gestational age | `04`, `10` |
+| Supplementary Figure S3 | CLR-PCA / composition clustering | `05` |
+| Supplementary Figure S4 | PTB model-specification and influence robustness | **`24`, `27`**, upstream `06c`, `07` |
+| Supplementary Figure S5 | ABS, SBR, PET, and PU nonlinearity | **`37`** |
+| Supplementary Figure S6 | 12-polymer recovery and PU/PET analytical sensitivity | **`39`**, frozen `18` outputs |
+| Supplementary Figure S7 | Labor augmentation and ordinal gestational age | **`28`**, upstream `08`, `11`, `26` |
+| Supplementary Figure S8 | Perivillous fibrin severity | **`29`**, upstream `09` |
+| Supplementary Table S1a–S1i | Cohort, assay, clinical models, pathology, spike validation | Final **`04-TableS1_v11_IQR_ANALYTICAL_ALIGNED.xlsx`**, separately held; see [ANALYSIS_MANIFEST.md](ANALYSIS_MANIFEST.md) |
 
-## What counts as the final effect scale?
+The figure numbers above reflect the **manuscript display order**, not the older figure numbers embedded in script filenames or historical filenames. Analyses moved from main figures to supplementary figures are still represented in this public code.
 
-**All final manuscript continuous effect displays use a polymer-specific IQR increase in the modeled log-transformed burden.** The PTB model uses `log10(1 + burden in µg/g)`; OR(IQR) = `exp(beta * IQR(transformed burden))`. Script 39 uses the algebraically equivalent IQR of `log2(1 + burden)` to convert frozen source coefficients on that source scale. The reference IQR for Script 39's original and maximum-blank-subtracted continuous models is the same original full-model sample IQR. Categorical threshold/Firth contrasts in Figure S6 are *not* IQR contrasts. Script 37's functional-form/influence models retain their own declared model-specific IQR definitions.
+## Exposure transformation and reporting scale
 
-Earlier scripts 06, 06c, 07, 11, 20 v2, and 22 can still contain **historical per-doubling-labelled intermediate outputs** and should not be used as final figure/table sources. They are retained as upstream analytical dependencies or provenance, **not as competing manuscript results**. Do not publish their intermediate plots as the final IQR figures.
+For the primary PTB logistic models, polymer-specific placental burden \(C\) (µg/g) is modeled as \(X=\log_{10}(1+C)\). The reported continuous exposure contrast is **one polymer-specific IQR of the transformed burden**, with \(\mathrm{OR}_{IQR}=\exp(\beta\,IQR(X))\). The source coefficients, robust HC1 uncertainty estimates, and model specifications define the inference; rescaling does not refit the underlying linear regression.
 
-## Final outputs and distribution
+The continuous PU/PET sensitivity estimates in Supplementary Figure S6 and Supplementary Table S1i-q use a **fixed original-model transformed IQR** for both the original and maximum-blank-subtracted models. The threshold models (at/above LOD and above LOQ, including Firth) are **binary contrasts, not IQR contrasts**. Script `37` retains its declared model-specific IQR references for spline/influence diagnostics. Since some polymers show nonlinearity, a single linear IQR OR should not be interpreted as a constant exposure response throughout the observed range.
 
-- Supplementary Table S1 **v11**: `04-TableS1_v11_IQR_ANALYTICAL_ALIGNED.xlsx` (manuscript supplementary artifact; not in this code repository because S1a contains participant-level material).
-- Figure S6: generated by `scripts/39_merged_placenta_analytical_suppfigure.R` (author-confirmed).
-- `RESULTS_CROSSWALK.csv`, `METHODS_SPECIFICATIONS.md`, and `ANALYSIS_MANIFEST.md` document provenance.
-- No hypothetical exposure-recovery corrections (Scripts 34/36), early two-polymer nonlinearity (33), or exploratory ABS detection decomposition (38) are distributed. Demoted-but-reported analyses **are** included.
+**Earlier upstream scripts may emit historical per-doubling-labelled intermediate results. They are retained for provenance/dependencies, not for manuscript reporting.** Use `23`, `27`, `28`, `29`, `37`, and `39` for the corresponding final displays. No historical per-doubling effect estimates should be inserted into the manuscript.
 
-## Running and limitations
+## Getting started
 
-Run from the repository root, first `source("00_config.R")`, then the relevant script. Install dependencies with `install_packages.R`. Most scripts require restricted specimen/model-ready inputs and locally preserved prior analysis outputs; see `data/README.md` and `REPRODUCIBILITY_NOTES.md`. In particular, Script 39 needs frozen Script 18 CSV outputs, including a restricted specimen audit (not public).
+Requires R with the dependencies listed in `install_packages.R`. Start **at the repository root**:
 
-**The repository is code-only; access to restricted inputs and the complete historical execution environment is not provided.** We have reviewed source files and verified file integrity, but have not executed the entire chain in this environment. The public GitHub release should not claim one-command replication from publicly downloadable data.
+```r
+source('install_packages.R')
+source('00_config.R')
+```
 
-## Source-control hygiene
+The new `run_analysis.R` is a **targeted launcher**, not a one-command pipeline. It will not run anything unless a specific target is requested:
 
-No clinical row-level data, identifiers, internal workbook, individual spike-validation records, or raw specimen audit are included. Do not commit the manuscript's S1 workbook if human-subject-level fields have not been cleared for sharing.
+```sh
+Rscript run_analysis.R --list
+Rscript run_analysis.R --check spline
+Rscript run_analysis.R --run spline
+Rscript run_analysis.R --check validation-s6
+Rscript run_analysis.R --run validation-s6
+```
+
+For interactive R, you can also source the chosen script directly from the repository root:
+
+```r
+source('scripts/37_four_polymer_nonlinearity_robustness.R')
+source('scripts/39_merged_placenta_analytical_suppfigure.R')
+```
+
+**Prerequisite outputs:** the primary IQR sequence is `06` → `22` → `23`; PTB robustness uses `24` → `27` and previous `07`/leave-one-out outputs; ordinal/labor finalization uses `26` → `28`; pathology uses `09` → `29`. These are **dependency guides, not an automatically tested topological run order**. In particular, Script `39` needs seven frozen Script 18 validation CSV inputs in `outputs/tables/39_merged_analytical_inputs/`, including a restricted specimen-level audit. Script `37` requires `outputs/tables/mnp_ptb_cohort__analysis_ready_model_table.csv`. Use the script headers and `REPRODUCIBILITY_NOTES.md` to locate other necessary upstream outputs.
+
+`--check` verifies only a small set of explicitly known file prerequisites; it is **not a complete validation** of packages, script-specific assumptions, or numerical replication. Each `--run` executes just one selected script and can overwrite its usual output paths: keep frozen manuscript output files backed up.
+
+## Repository structure
+
+- `00_config.R` — project-relative paths and shared constants; environment variables can override restricted input paths.
+- `run_analysis.R` — explicit target listing, basic prerequisite checks, and single-target execution.
+- `scripts/` — study scripts, including upstream/legacy intermediates required to generate publication results.
+- `R/` — shared helpers and plotting theme.
+- `data/README.md` — restricted input requirements; **do not commit** patient-level data.
+- `ANALYSIS_MANIFEST.md` — authoritative versus historical/upstream scripts.
+- `METHODS_SPECIFICATIONS.md` — analysis-specification summary.
+- `RESULTS_CROSSWALK.csv` — exhibit-to-script provenance.
+- `SCRIPT39_IQR_CONVERSION_REFERENCE.csv` — reporting-scale crosscheck.
+- `REPRODUCIBILITY_NOTES.md` — limitations and release checklist.
+
+## Release and data protection
+
+The **v11 supplementary workbook** is held separately and is **not automatically public data**: S1a and validation appendices contain individual-level clinical or specimen data. Publication or repository distribution requires the study team's data-release approval. Do not commit local `outputs/`, private model-ready data, individual specimen audit files, or raw clinical/validation workbooks.
+
+This README describes the curated code state as supplied for repository staging. It does not claim the contents have been committed to GitHub or that a remote GitHub Action has reproduced the figures. Complete the manuscript numerical crosscheck before assigning a final publication release tag.
