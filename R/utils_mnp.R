@@ -193,8 +193,36 @@ yes_no_like <- function(x) {
 }
 
 derive_ethnicity_race <- function(dat) {
-  eth <- safe_chr(pull_existing(dat, c("Ethnicity", "ethnicity"), default = NA_character_))
-  hisp <- stringr::str_detect(tolower(eth), "hispanic|latino|latina|latinx")
+
+  eth <- safe_chr(
+    pull_existing(dat, c("Ethnicity", "ethnicity"),
+                  default = NA_character_)
+  )
+
+  eth_clean <- stringr::str_squish(
+    stringr::str_to_lower(eth)
+  )
+
+  # Explicitly distinguish Hispanic, non-Hispanic,
+  # and unknown ethnicity.
+  non_hisp <- !is.na(eth_clean) &
+    stringr::str_detect(
+      eth_clean,
+      "non[- ]?hispanic|not hispanic|non[- ]?latino"
+    )
+
+  hisp <- !is.na(eth_clean) &
+    !non_hisp &
+    stringr::str_detect(
+      eth_clean,
+      "hispanic|latino|latina|latinx"
+    )
+
+  ethnicity_group <- dplyr::case_when(
+    non_hisp ~ "Non-Hispanic",
+    hisp ~ "Hispanic",
+    TRUE ~ "Unknown ethnicity"
+  )
 
   race_cols <- c(
     ai_an = "Race - American Indian/Alaska Native",
@@ -206,7 +234,9 @@ derive_ethnicity_race <- function(dat) {
   )
 
   get_yes <- function(nm) {
-    if (!nm %in% names(dat)) return(rep(FALSE, nrow(dat)))
+    if (!nm %in% names(dat)) {
+      return(rep(FALSE, nrow(dat)))
+    }
     x <- yes_no_like(dat[[nm]])
     ifelse(is.na(x), FALSE, x)
   }
@@ -220,7 +250,11 @@ derive_ethnicity_race <- function(dat) {
     unknown = get_yes(race_cols[["unknown"]])
   )
 
-  n_races <- rowSums(race_yes[, c("ai_an","asian","nhpi","black","white")], na.rm = TRUE)
+  n_races <- rowSums(
+    race_yes[, c("ai_an", "asian", "nhpi",
+                 "black", "white")],
+    na.rm = TRUE
+  )
 
   race_label <- dplyr::case_when(
     race_yes$unknown ~ "Unknown/Not reported",
@@ -234,16 +268,24 @@ derive_ethnicity_race <- function(dat) {
   )
 
   dplyr::case_when(
-    hisp & race_label == "White" ~ "Hispanic White",
-    hisp & !is.na(race_label) & race_label != "White" ~ paste("Hispanic", race_label),
-    hisp & is.na(race_label) ~ "Hispanic/Latino",
-    !hisp & race_label == "White" ~ "Non-Hispanic White",
-    !hisp & race_label == "Black or African American" ~ "Non-Hispanic Black",
-    !hisp & race_label == "Asian" ~ "Non-Hispanic Asian",
-    !hisp & !is.na(race_label) ~ paste("Non-Hispanic", race_label),
-    TRUE ~ NA_character_
+    ethnicity_group == "Hispanic" &
+      is.na(race_label) ~ "Hispanic/Latino",
+
+    ethnicity_group == "Hispanic" ~
+      paste("Hispanic", race_label),
+
+    ethnicity_group == "Non-Hispanic" &
+      !is.na(race_label) ~
+      paste("Non-Hispanic", race_label),
+
+    ethnicity_group == "Unknown ethnicity" &
+      !is.na(race_label) ~
+      paste("Unknown ethnicity", race_label),
+
+    TRUE ~ "Unknown ethnicity/race"
   )
 }
+
 
 derive_prior_ptb_from_parity <- function(parity) {
   # Parity often encoded as: term preterm abortions living
